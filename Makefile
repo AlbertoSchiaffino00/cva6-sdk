@@ -80,6 +80,24 @@ $(CC): $(buildroot_defconfig) $(linux_defconfig) $(busybox_defconfig)
 	make -C buildroot host-patchelf
 	echo `realpath buildroot/output/host` > buildroot/output/host/share/buildroot/sdk-location
 	cd buildroot && HOST_DIR=`realpath output/host` STAGING_DIR=`realpath output/host/riscv64-buildroot-linux-gnu/sysroot` TARGET_DIR=`realpath output/target` PER_PACKAGE_DIR=`pwd`/per-package ./support/scripts/fix-rpath host
+	# Copy HERO drivers
+	cp $(ROOT)/../sw/hero-driver/carfield/carfield.ko $(ROOT)/rootfs/root	
+	# Copy libraries
+	mkdir -p $(ROOT)/rootfs/usr/lib
+	cp $(ROOT)/../sw/libhero/lib/libhero_spatz_cluster.so $(ROOT)/rootfs/usr/lib
+	cp -r $(ROOT)/../sw/libomp/lib/*.so $(ROOT)/rootfs/usr/lib
+	# Copy test for dynticks
+	# mkdir -p $(ROOT)/rootfs/root/dynticks-testing
+	# cp -r $(ROOT)/../../dynticks-testing/user_loop $(ROOT)/rootfs/root/dynticks-testing
+	# cp -r $(ROOT)/../../dynticks-testing/run $(ROOT)/rootfs/root/dynticks-testing
+ 
+	# #copy RAJAperf & LLC enabler for testing
+	# cp -r $(ROOT)/../../RAJAPerf/build/bin/raja-perf-omptarget.exe $(ROOT)/rootfs/root/dynticks-testing
+	# cp -r $(ROOT)/../apps/carfield/omp/offload_benchmark/offload_benchmark $(ROOT)/rootfs/root/dynticks-testing
+ 
+	# #copy dma test
+	# cp /scratch2/msc24h6/hero-tools/apps/carfield/omp/dma_profiling/dma_profiling $(ROOT)/rootfs/root
+	
 
 all: $(CC)
 
@@ -156,12 +174,6 @@ format-sd: $(SDDEVICE)
 	@test -n "$(SDDEVICE)" || (echo 'SDDEVICE must be set, Ex: make flash-sdcard SDDEVICE=/dev/sdc' && exit 1)
 	sgdisk --clear -g --new=1:$(DT_SECTORSTART):$(DT_SECTOREND) --new=2:$(FW_SECTORSTART):$(FW_SECTOREND) --new=3:$(UIMAGE_SECTORSTART):$(UIMAGE_SECTOREND) --new=4:$(ROOT_SECTORSTART):$(ROOT_SECTOREND) --typecode=1:b000 --typecode=2:3000 --typecode=3:8300 --typecode=4:8200 $(SDDEVICE)
 
-# Drivers and applications
-rootfs/root/carfield_driver.ko:
-	make -C buildroot linux
-	make -C sw/drivers/carfield
-	cp sw/drivers/carfield/carfield_driver.ko rootfs/root/carfield_driver.ko
-
 # specific recipes
 gcc: $(CC)
 vmlinux: $(RISCV)/vmlinux
@@ -169,10 +181,9 @@ fw_payload.bin: $(RISCV)/fw_payload.bin
 uImage: $(RISCV)/uImage
 spike_payload: $(RISCV)/spike_fw_payload.elf
 
-images: $(CC) rootfs/root/carfield_driver.ko $(RISCV)/fw_payload.bin $(RISCV)/uImage
+images: $(CC) $(RISCV)/fw_payload.bin $(RISCV)/uImage
 
 clean:
-	rm -f rootfs/root/*.ko rootfs/root/tests/*.app
 	rm -rf $(RISCV)/vmlinux cachetest/*.elf rootfs/tetris rootfs/cachetest.elf
 	rm -rf $(RISCV)/fw_payload.bin $(RISCV)/uImage $(RISCV)/Image.gz
 	make -C u-boot clean

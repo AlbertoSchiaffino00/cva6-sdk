@@ -18,4 +18,4 @@
 	url = https://github.com/pulp-platform/u-boot
 [submodule "opensbi"]
 	path = opensbi
-	url = https://github.com/pulp-platform/opensbi
+	url = https://github.com/emanueleparisi/opensbi.git
